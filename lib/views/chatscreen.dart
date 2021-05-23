@@ -289,7 +289,11 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        chatRoomId.contains("Group",0) ? sendByMe ? Container() : Text(sendByName) : Container(),
+                        chatRoomId.contains("Group", 0)
+                            ? sendByMe
+                                ? Container()
+                                : Text(sendByName)
+                            : Container(),
                         forwarded
                             ? Row(
                                 children: [
@@ -423,7 +427,10 @@ class _ChatScreenState extends State<ChatScreen> {
             SizedBox(
               width: 20,
             ),
-            Text(widget.name)
+            Text(
+              widget.name,
+              overflow: TextOverflow.ellipsis,
+            )
           ],
         ),
         actions: [
@@ -434,8 +441,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => AddUserToGroup(
-                                chatRoomId, widget.profileUrl)));
+                            builder: (context) =>
+                                AddUserToGroup(chatRoomId, widget.profileUrl)));
                     setState(() {});
                   },
                   child: Padding(

@@ -88,10 +88,9 @@ class _ForwardMenuState extends State<ForwardMenu> {
         title: Text("Forward To"),
       ),
       body: Container(
-          padding: EdgeInsets.all(8),
-          child: Column(
-            children: [chatRoomsList()],
-          )),
+        padding: EdgeInsets.all(8),
+        child: chatRoomsList(),
+      ),
     );
   }
 }

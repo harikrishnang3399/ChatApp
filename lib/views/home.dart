@@ -55,6 +55,7 @@ class _HomeState extends State<Home> {
             return ListView.builder(
               itemCount: snapshot.data.docs.length,
               shrinkWrap: true,
+              scrollDirection: Axis.vertical,
               itemBuilder: (context, index) {
                 DocumentSnapshot ds = snapshot.data.docs[index];
                 print("hey list builder inside home is working");
@@ -151,9 +152,7 @@ class _HomeState extends State<Home> {
       ),
       body: Container(
         margin: EdgeInsets.all(8),
-        child: Column(
-          children: [chatRoomsList()],
-        ),
+        child: chatRoomsList(),
       ),
     );
   }

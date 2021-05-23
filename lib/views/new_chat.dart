@@ -186,8 +186,7 @@ class _NewChatState extends State<NewChat> {
               ),
             ),
       body: Container(
-        child: isSearching && selected ? searchUsersList() : Container(),
-      ),
+          child: isSearching && selected ? searchUsersList() : Container()),
     );
   }
 }

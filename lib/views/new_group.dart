@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:chat_app/services/database.dart';
-import 'package:chat_app/views/groupscreen.dart';
+import 'package:chat_app/views/chatscreen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -18,27 +20,40 @@ class _NewGroupState extends State<NewGroup> {
   bool selected = false, enableButton = false;
   TextEditingController groupNameContoller = TextEditingController();
   String groupName;
-  String chatRoomId, profileUrl = "";
+  String chatRoomId;
   File _image;
+  String imageUrl;
+
   ImagePicker imagePicker = ImagePicker();
+
+  Future<String> uploadFile(image) async {
+    String url;
+    Reference ref =
+        FirebaseStorage.instance.ref().child("Image${DateTime.now()}");
+    UploadTask uploadTask = ref.putFile(image);
+    url = await uploadTask.then((res) => res.ref.getDownloadURL());
+    return url;
+  }
+
+  Future saveImage(image, DocumentReference documentReference) async {
+    imageUrl = await uploadFile(image);
+    print("in saveImage imageUrl is $imageUrl");
+    documentReference.update({"image": imageUrl});
+  }
+
   Future getImage() async {
     final image = await imagePicker.getImage(source: ImageSource.gallery);
     setState(() {
       _image = File(image.path);
     });
+    print("image is $_image");
   }
 
-  // uploadImage(File image) async {
-  //   StorageReference reference =
-  //       FirebaseFirestore.instance.ref().child(image.path.toString());
-  //   StorageUploadTask uploadTask = reference.putFile(image);
+  returnImageUrl() async {
+    return imageUrl;
+  }
 
-  //   StorageTaskSnapshot downloadUrl = (await uploadTask.onComplete);
-
-  //   String url = (await downloadUrl.ref.getDownloadURL());
-  // }
-
-  createGroup() {
+  createGroup(_image) async {
     groupName = groupNameContoller.text;
     var date = DateTime.now();
     chatRoomId = "Group$groupName\_$date";
@@ -52,15 +67,22 @@ class _NewGroupState extends State<NewGroup> {
       "lastMessageId": " ",
     };
 
+    var bytes = utf8.encode(chatRoomId);
+    String groupId = sha1.convert(bytes).toString();
+
+    DocumentReference documentReference =
+        FirebaseFirestore.instance.collection("images").doc();
+    await saveImage(_image, documentReference);
+
+    String imgURL = imageUrl != null ? imageUrl : "";
+    print("inside createGroup imageUrl is $imageUrl");
+    print("inside createGroup imgURL is $imgURL");
+
     Map<String, dynamic> groupInfoMap = {
       "name": groupName,
       "username": chatRoomId,
-      "imgUrl": ""
+      "imgUrl": imgURL
     };
-
-    var bytes = utf8.encode(chatRoomId);
-
-    String groupId = sha1.convert(bytes).toString();
 
     DatabaseMethods().addUserInfoToDB(groupId, groupInfoMap);
 
@@ -72,8 +94,7 @@ class _NewGroupState extends State<NewGroup> {
     Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (context) =>
-                GroupScreen(groupName, chatRoomId, profileUrl)));
+            builder: (context) => ChatScreen(chatRoomId, groupName, imgURL)));
   }
 
   @override
@@ -86,20 +107,21 @@ class _NewGroupState extends State<NewGroup> {
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _image ==
-              null?CircleAvatar(
-            child: Container(
-              child: IconButton(
-                onPressed: () {
-                  getImage();
-                },
-                icon: Icon(Icons.camera_alt),
-                color: Colors.black,
-              ),
-            ),
-            backgroundColor: Colors.grey,
-            radius: 40,
-          ): Container(),
+          _image == null
+              ? CircleAvatar(
+                  child: Container(
+                    child: IconButton(
+                      onPressed: () {
+                        getImage();
+                      },
+                      icon: Icon(Icons.camera_alt),
+                      color: Colors.black,
+                    ),
+                  ),
+                  backgroundColor: Colors.grey,
+                  radius: 40,
+                )
+              : Container(),
           _image != null
               ? Image.file(
                   _image,
@@ -157,7 +179,7 @@ class _NewGroupState extends State<NewGroup> {
           ElevatedButton(
             onPressed: enableButton
                 ? () {
-                    createGroup();
+                    createGroup(_image);
                   }
                 : null,
             child: Text("Create Group"),
