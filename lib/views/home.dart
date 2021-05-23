@@ -204,16 +204,13 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
     super.initState();
   }
 
-  // @override
-  // void didUpdateWidget(ChatRoomListTile oldWidget) {
-  //   // ignore: avoid_init_to_null
-  //   String secondLastMessage = null;
-  //   if (secondLastMessage != widget.lastMessage) {
-  //     getThisUserInfo();
-  //     secondLastMessage = widget.lastMessage;
-  //   }
-  //   super.didUpdateWidget(oldWidget);
-  // }
+  @override
+  void didUpdateWidget(covariant ChatRoomListTile oldWidget) {
+    if (oldWidget.lastMessage != widget.lastMessage) {
+      getThisUserInfo();
+    }
+    super.didUpdateWidget(oldWidget);
+  }
 
   @override
   Widget build(BuildContext context) {

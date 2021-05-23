@@ -4,7 +4,6 @@ import 'package:chat_app/helperfunctions/sharedpref_helper.dart';
 import 'package:chat_app/services/database.dart';
 import 'package:chat_app/views/addusertogroup.dart';
 import 'package:chat_app/views/forwarded_menu.dart';
-import 'package:chat_app/views/home.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/cupertino.dart';
@@ -395,102 +394,95 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () {
-        Navigator.popUntil(context, (route) => route.isFirst);
-        return Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (context) => Home()));
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          centerTitle: true,
-          title: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Image.network(
-                  widget.profileUrl,
-                  height: 40,
-                  width: 40,
-                  errorBuilder: (BuildContext context, Object exception,
-                      StackTrace stackTrace) {
-                    return CircleAvatar(
-                      child: Icon(
-                        chatRoomId.contains("Group", 0)
-                            ? Icons.people_alt_sharp
-                            : Icons.person,
-                        color: Colors.black87,
-                      ),
-                      backgroundColor: Colors.grey,
-                      radius: 20,
-                    );
-                  },
-                ),
-              ),
-              SizedBox(
-                width: 20,
-              ),
-              Text(widget.name)
-            ],
-          ),
-          actions: [
-            chatRoomId != null && chatRoomId.contains("Group")
-                ? GestureDetector(
-                    onTap: () {
-                      selected = true;
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => AddUserToGroup(
-                                  chatRoomId, widget.profileUrl)));
-                      setState(() {});
-                    },
-                    child: Padding(
-                      padding: EdgeInsets.only(right: 16.0),
-                      child: Icon(Icons.person_add_alt_sharp),
+    return Scaffold(
+      appBar: AppBar(
+        centerTitle: true,
+        title: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.network(
+                widget.profileUrl,
+                height: 40,
+                width: 40,
+                errorBuilder: (BuildContext context, Object exception,
+                    StackTrace stackTrace) {
+                  return CircleAvatar(
+                    child: Icon(
+                      chatRoomId.contains("Group", 0)
+                          ? Icons.people_alt_sharp
+                          : Icons.person,
+                      color: Colors.black87,
                     ),
-                  )
-                : Container()
+                    backgroundColor: Colors.grey,
+                    radius: 20,
+                  );
+                },
+              ),
+            ),
+            SizedBox(
+              width: 20,
+            ),
+            Text(widget.name)
           ],
         ),
-        body: Container(
-          child: Stack(
-            children: [
-              chatMessages(),
-              Container(
-                alignment: Alignment.bottomCenter,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  color: Colors.black.withOpacity(0.3),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          keyboardType: TextInputType.multiline,
-                          maxLines: null,
-                          onChanged: (value) {
-                            addMessage(false);
-                          },
-                          controller: messageTextEditingController,
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            hintText: "Enter a message...",
-                            hintStyle: TextStyle(fontWeight: FontWeight.w600),
-                          ),
+        actions: [
+          chatRoomId != null && chatRoomId.contains("Group")
+              ? GestureDetector(
+                  onTap: () {
+                    selected = true;
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => AddUserToGroup(
+                                chatRoomId, widget.profileUrl)));
+                    setState(() {});
+                  },
+                  child: Padding(
+                    padding: EdgeInsets.only(right: 16.0),
+                    child: Icon(Icons.person_add_alt_sharp),
+                  ),
+                )
+              : Container()
+        ],
+      ),
+      body: Container(
+        child: Stack(
+          children: [
+            chatMessages(),
+            Container(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                color: Colors.black.withOpacity(0.3),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        keyboardType: TextInputType.multiline,
+                        maxLines: null,
+                        onChanged: (value) {
+                          addMessage(false);
+                        },
+                        controller: messageTextEditingController,
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          hintText: "Enter a message...",
+                          hintStyle: TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ),
-                      GestureDetector(
-                        onTap: () {
-                          addMessage(true);
-                        },
-                        child: Icon(Icons.send),
-                      )
-                    ],
-                  ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        addMessage(true);
+                      },
+                      child: Icon(Icons.send),
+                    )
+                  ],
                 ),
-              )
-            ],
-          ),
+              ),
+            )
+          ],
         ),
       ),
     );

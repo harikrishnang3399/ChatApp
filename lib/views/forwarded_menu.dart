@@ -159,6 +159,12 @@ class _ForwardedChatRoomListTileState extends State<ForwardedChatRoomListTile> {
   }
 
   @override
+  void didUpdateWidget(covariant ForwardedChatRoomListTile oldWidget) {
+    getThisUserInfo();
+    super.didUpdateWidget(oldWidget);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final DateTime date = DateTime.fromMicrosecondsSinceEpoch(
         widget.lastMessageSendTS.microsecondsSinceEpoch);
