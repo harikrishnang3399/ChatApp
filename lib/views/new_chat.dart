@@ -56,18 +56,12 @@ class _NewChatState extends State<NewChat> {
             .createChatRoom(chatRoomId, chatRoomInfoMap, lastMessageInfoMap);
 
         // DatabaseMethods().updateLastMessageSend(chatRoomId, lastMessageInfoMap);
-
+        Navigator.popUntil(context, (route) => route.isFirst);
         Navigator.push(
             context,
             MaterialPageRoute(
                 builder: (context) =>
-                    ChatScreen(username, name, profileUrl))).then(
-          (value) {
-            isSearching = false;
-            searchUserNameEditingController.text = "";
-            setState(() {});
-          },
-        );
+                    ChatScreen(username, name, profileUrl)));
       },
       child: Card(
         child: Container(
@@ -85,7 +79,16 @@ class _NewChatState extends State<NewChat> {
               SizedBox(width: 16),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [Text(name), Text(username)],
+                children: [
+                  Text(
+                    name,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    username,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               )
             ],
           ),

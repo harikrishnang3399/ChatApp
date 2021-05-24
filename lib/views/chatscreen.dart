@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:chat_app/helperfunctions/sharedpref_helper.dart';
 import 'package:chat_app/services/database.dart';
@@ -155,10 +156,14 @@ class _ChatScreenState extends State<ChatScreen> {
       messageId = sha1.convert(bytes).toString();
       print(messageId);
       print("forwardedMessageid is ${widget.forwardedMessageId}");
-      List forwardedList;
 
-      forwardedList = await DatabaseMethods()
+      DocumentSnapshot<Map<String, dynamic>> forwarded;
+      forwarded = await DatabaseMethods()
           .getForwarded(widget.forwardedChatRoomId, widget.forwardedMessageId);
+      List forwardedList, upVoters;
+
+      forwardedList = forwarded["forwardedTo"];
+      upVoters = forwarded["upVoters"];
       Map<String, String> forwardedListInfoMap = {
         "chatRoomId": chatRoomId,
         "messageId": messageId
@@ -173,7 +178,8 @@ class _ChatScreenState extends State<ChatScreen> {
         "imgUrl": myProfilePic,
         "forwardedTo": forwardedList,
         "forwarded": true,
-        "upVoteCount": 5,
+        "reported": forwarded["reported"],
+        "upVoters": upVoters,
       };
 
       DatabaseMethods()
@@ -232,7 +238,8 @@ class _ChatScreenState extends State<ChatScreen> {
         "imgUrl": myProfilePic,
         "forwarded": false,
         "forwardedTo": forwardedList,
-        "upVoteCount": 5,
+        "reported": false,
+        "upVoters": [],
       };
 
       DatabaseMethods()
@@ -252,94 +259,108 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  Widget chatMessageTile(String messageId, message, bool sendByMe, Timestamp ts,
-      bool forwarded, String sendByName) {
+  Widget chatMessageTile(String messageId, String message, String sendBy,
+      Timestamp ts, bool forwarded, String sendByName, List upVoters) {
+    bool sendByMe = sendBy == myUserName;
     final DateTime date =
         DateTime.fromMillisecondsSinceEpoch(ts.millisecondsSinceEpoch);
 
-    return Row(
-      mainAxisAlignment:
-          sendByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+    void showCustomPopupMenu(TapDownDetails details, String message,
+        String messageId, String chatRoomId) {
+      final RenderBox overlay = Overlay.of(context).context.findRenderObject();
 
-      //this will determine if the message should be displayed left or right
-      children: [
-        IconButton(
-            icon: Icon(Icons.forward),
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) {
-                  print("Before forwardMenu $chatRoomId");
-                  return ForwardMenu(messageId, message, chatRoomId);
-                }),
-              );
-            }),
-        Flexible(
-          child: IntrinsicWidth(
-            child: Column(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(8.0),
-                  margin: EdgeInsets.all(4.0),
-                  decoration: BoxDecoration(
-                      color: sendByMe ? Colors.blue : Colors.blueGrey,
-                      borderRadius: BorderRadius.all(Radius.circular(8.0))),
-                  child: GestureDetector(
-                    onTap: () {},
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        chatRoomId.contains("Group", 0)
-                            ? sendByMe
-                                ? Container()
-                                : Text(sendByName)
-                            : Container(),
-                        forwarded
-                            ? Row(
-                                children: [
-                                  Icon(Icons.forward),
-                                  Text("Forwarded")
-                                ],
-                              )
-                            : SizedBox(
-                                height: 0.0,
+      showMenu(
+          context: context,
+          items: <PopupMenuEntry<Icon>>[
+            PopUpEntry(
+                message, messageId, chatRoomId, forwarded, myUserName, upVoters)
+          ],
+          position: RelativeRect.fromRect(
+              details.globalPosition &
+                  const Size(40, 40), // smaller rect, the touch area
+              Offset.fromDirection(pi / 2, 120) &
+                  overlay.semanticBounds.size // Bigger rect, the entire screen
+              ));
+    }
+
+    return GestureDetector(
+      onTapDown: (TapDownDetails details) {
+        showCustomPopupMenu(details, message, messageId, chatRoomId);
+      },
+      child: Card(
+        color: Colors.grey.shade50,
+        elevation: 0,
+        child: Row(
+          mainAxisAlignment:
+              sendByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+
+          //this will determine if the message should be displayed left or right
+          children: [
+            Flexible(
+              child: IntrinsicWidth(
+                child: Column(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(10.0),
+                      margin: EdgeInsets.symmetric(horizontal: 4),
+                      decoration: BoxDecoration(
+                          color: sendByMe ? Colors.blue : Colors.blueGrey,
+                          borderRadius: BorderRadius.all(Radius.circular(6.0))),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          chatRoomId.contains("Group", 0)
+                              ? sendByMe
+                                  ? Container()
+                                  : Text(sendByName)
+                              : Container(),
+                          forwarded
+                              ? Row(
+                                  children: [
+                                    Icon(Icons.forward),
+                                    Text("Forwarded")
+                                  ],
+                                )
+                              : SizedBox(
+                                  height: 0.0,
+                                ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                constraints: BoxConstraints(maxWidth: 250),
+                                child: buildTextWithLinks(
+                                    message.trim(), sendByMe),
                               ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              constraints: BoxConstraints(maxWidth: 250),
-                              child:
-                                  buildTextWithLinks(message.trim(), sendByMe),
-                            ),
-                            SizedBox(
-                              width: 10.0,
-                            ),
-                          ],
-                        ),
-                        Padding(
-                          padding: EdgeInsets.only(top: 4.0),
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              DateFormat('dd MMM hh:mm a').format(date),
-                              style: TextStyle(
-                                  fontSize: 10.0, color: Colors.black),
-                            ),
-                          ],
-                        ),
-                      ],
+                              SizedBox(
+                                width: 10.0,
+                              ),
+                            ],
+                          ),
+                          Padding(
+                            padding: EdgeInsets.only(top: 4.0),
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                DateFormat('dd MMM hh:mm a').format(date),
+                                style: TextStyle(
+                                    fontSize: 10.0, color: Colors.black),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -357,10 +378,11 @@ class _ChatScreenState extends State<ChatScreen> {
                   return chatMessageTile(
                       ds.id,
                       ds["message"],
-                      myUserName == ds["sendBy"],
+                      ds["sendBy"],
                       ds["ts"],
                       ds["forwarded"],
-                      ds["sendByName"]);
+                      ds["sendByName"],
+                      ds["upVoters"]);
                 },
               )
             : Center(child: CircularProgressIndicator());
@@ -375,14 +397,14 @@ class _ChatScreenState extends State<ChatScreen> {
 
   doThisOnLaunch() async {
     await getMyInfoFromSharedPreferences();
-    getAndSetMessages();
+    await getAndSetMessages();
     print("dothis launch $chatRoomId");
   }
 
-  doThisFOrFOrwardedMessage() async {
+  doThisForForwardedMessage() async {
     await doThisOnLaunch();
 
-    print("Inside chatscreen doThisFOrFOrwardedMessage $chatRoomId");
+    print("Inside chatscreen doThisForNormalEntry $chatRoomId");
     if (widget.forwardedMessage != null) {
       print("Inside chatscreen doThisFOrFOrwardedMessage1 $chatRoomId");
       addMessage(true);
@@ -392,7 +414,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void initState() {
-    doThisFOrFOrwardedMessage();
+    doThisForForwardedMessage();
     super.initState();
   }
 
@@ -427,9 +449,13 @@ class _ChatScreenState extends State<ChatScreen> {
             SizedBox(
               width: 20,
             ),
-            Text(
-              widget.name,
-              overflow: TextOverflow.ellipsis,
+            Container(
+              constraints: BoxConstraints(maxWidth: 235),
+              child: Text(
+                widget.name,
+                // maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             )
           ],
         ),
@@ -496,10 +522,120 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-// class ExpandedFlex extends Flexible {
-//   const ExpandedFlex({
-//     Key key,
-//     int flex = 1,
-//     @required Widget child,
-//   }) : super(key: key, flex: flex, fit: FlexFit.loose, child: child);
-// }
+class PopUpEntry extends PopupMenuEntry<Icon> {
+  @override
+  final height = 100;
+  final String message, messageId, chatRoomId, upvoterName;
+  final List upVoters;
+  final bool forwarded;
+  PopUpEntry(this.message, this.messageId, this.chatRoomId, this.forwarded,
+      this.upvoterName, this.upVoters);
+
+  @override
+  _PopUpEntryState createState() => _PopUpEntryState();
+
+  @override
+  bool represents(Icon value) {
+    throw UnimplementedError();
+  }
+}
+
+class _PopUpEntryState extends State<PopUpEntry> {
+  void onCopy() {
+    Navigator.pop(context);
+    Clipboard.setData(ClipboardData(text: widget.message.trim()));
+  }
+
+  void onForward() {
+    Navigator.pop(context);
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => ForwardMenu(
+                widget.messageId, widget.message, widget.chatRoomId)));
+  }
+
+  void onReport() async {
+    Navigator.pop(context);
+
+    DocumentSnapshot<Map<String, dynamic>> forwarded;
+    forwarded = await DatabaseMethods()
+        .getForwarded(widget.chatRoomId, widget.messageId);
+    List forwardedList = forwarded["forwardedTo"];
+    List upVoters = forwarded["upVoters"];
+    upVoters.add(widget.upvoterName);
+
+    for (var forwardedlistmap in forwardedList) {
+      print("forwardedlistmap $forwardedlistmap");
+      DatabaseMethods().updateReported(forwardedlistmap, upVoters);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    String urlPattern =
+        r"(((https?)://)|www.)([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\?[A-Z0-9+&@#/%=~_|!:‌​,.;]*)?";
+    RegExp linkRegExp = RegExp('($urlPattern)', caseSensitive: false);
+    RegExpMatch match = linkRegExp.firstMatch(widget.message);
+
+    print("Match $match");
+
+    return Row(
+      children: <Widget>[
+        SizedBox(
+          width: 8,
+        ),
+        Expanded(
+          child: TextButton(
+            onPressed: onCopy,
+            child: Column(
+              children: [
+                Icon(Icons.copy),
+                SizedBox(
+                  height: 4,
+                ),
+                Text("Copy"),
+              ],
+            ),
+          ),
+        ),
+        Expanded(
+          child: TextButton(
+            onPressed: onForward,
+            child: Column(
+              children: [
+                Icon(Icons.forward),
+                SizedBox(
+                  height: 4,
+                ),
+                Text("Forward"),
+              ],
+            ),
+          ),
+        ),
+        widget.forwarded &&
+                (widget.message.split(" ").length > 10 || match != null)
+            ? widget.upVoters.contains(widget.upvoterName)
+                ? Container()
+                : Expanded(
+                    child: TextButton(
+                      onPressed: onReport,
+                      child: Column(
+                        children: [
+                          Icon(Icons.report),
+                          SizedBox(
+                            height: 4,
+                          ),
+                          Text("Report"),
+                        ],
+                      ),
+                    ),
+                  )
+            : Container(),
+        SizedBox(
+          width: 8,
+        ),
+      ],
+    );
+  }
+}

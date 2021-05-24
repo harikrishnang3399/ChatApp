@@ -29,7 +29,7 @@ class _NewGroupState extends State<NewGroup> {
   Future<String> uploadFile(image) async {
     String url;
     Reference ref =
-        FirebaseStorage.instance.ref().child("Image${DateTime.now()}");
+        FirebaseStorage.instance.ref().child("AppGroupImages/Image${DateTime.now()}");
     UploadTask uploadTask = ref.putFile(image);
     url = await uploadTask.then((res) => res.ref.getDownloadURL());
     return url;
@@ -38,7 +38,6 @@ class _NewGroupState extends State<NewGroup> {
   Future saveImage(image, DocumentReference documentReference) async {
     imageUrl = await uploadFile(image);
     print("in saveImage imageUrl is $imageUrl");
-    documentReference.update({"image": imageUrl});
   }
 
   Future getImage() async {
@@ -60,12 +59,6 @@ class _NewGroupState extends State<NewGroup> {
     Map<String, dynamic> chatRoomInfoMap = {
       "users": [widget.myUserName]
     };
-    Map<String, dynamic> lastMessageInfoMap = {
-      "lastMessage": " ",
-      "lastMessageSendTS": DateTime.now(),
-      "lastMessageSendBy": " ",
-      "lastMessageId": " ",
-    };
 
     var bytes = utf8.encode(chatRoomId);
     String groupId = sha1.convert(bytes).toString();
@@ -86,6 +79,12 @@ class _NewGroupState extends State<NewGroup> {
 
     DatabaseMethods().addUserInfoToDB(groupId, groupInfoMap);
 
+    Map<String, dynamic> lastMessageInfoMap = {
+      "lastMessage": " ",
+      "lastMessageSendTS": DateTime.now(),
+      "lastMessageSendBy": " ",
+      "lastMessageId": " ",
+    };
     DatabaseMethods()
         .createChatRoom(chatRoomId, chatRoomInfoMap, lastMessageInfoMap);
 

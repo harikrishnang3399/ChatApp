@@ -36,24 +36,36 @@ class DatabaseMethods {
         .set(messageInfoMap);
   }
 
-  Future<List> getForwarded(String chatRoomId, String messageId) async {
+  // Future<List> getForwardedList(String chatRoomId, String messageId) async {
+  //   print("inside getForwarded $messageId");
+  //   print("inside getForwarded $chatRoomId");
+  //   List forwardedList = [];
+  //   await FirebaseFirestore.instance
+  //       .collection("chatrooms")
+  //       .doc(chatRoomId)
+  //       .collection("chats")
+  //       .doc(messageId)
+  //       .get()
+  //       .then((DocumentSnapshot ds) {
+  //     if (ds.data() != null) {
+  //       forwardedList = ds["forwardedTo"];
+  //       print("forwardedList inside getForwarded is $forwardedList");
+  //     }
+  //   });
+  //   print(forwardedList);
+  //   return forwardedList;
+  // }
+
+  Future<DocumentSnapshot<Map<String, dynamic>>> getForwarded(
+      String chatRoomId, String messageId) async {
     print("inside getForwarded $messageId");
     print("inside getForwarded $chatRoomId");
-    List forwardedList = [];
-    await FirebaseFirestore.instance
+    return await FirebaseFirestore.instance
         .collection("chatrooms")
         .doc(chatRoomId)
         .collection("chats")
         .doc(messageId)
-        .get()
-        .then((DocumentSnapshot ds) {
-      if (ds.data() != null) {
-        forwardedList = ds["forwardedTo"];
-        print("forwardedList inside getForwarded is $forwardedList");
-      }
-    });
-    print(forwardedList);
-    return forwardedList;
+        .get();
   }
 
   Future<List> getChatRoomUsers(String chatRoomId) async {
@@ -83,12 +95,35 @@ class DatabaseMethods {
         .update({"forwardedTo": forwardedList});
   }
 
+  updateReported(Map forwardedlist, List upVoters) {
+    String chatRoomId = forwardedlist["chatRoomId"];
+    String messageId = forwardedlist["messageId"];
+    return FirebaseFirestore.instance
+        .collection("chatrooms")
+        .doc(chatRoomId)
+        .collection("chats")
+        .doc(messageId)
+        .update({"reported": true, "upVoters": upVoters});
+  }
+
+  // updateYouReported(Map forwardedlist) {
+  //   String chatRoomId = forwardedlist["chatRoomId"];
+  //   String messageId = forwardedlist["messageId"];
+  //   return FirebaseFirestore.instance
+  //       .collection("chatrooms")
+  //       .doc(chatRoomId)
+  //       .collection("chats")
+  //       .doc(messageId)
+  //       .update({"youReported": true});
+  // }
+
   addUserToGroup(String chatRoomId, List usersList) {
     print("user added by addUserToGroup");
     return FirebaseFirestore.instance
         .collection("chatrooms")
         .doc(chatRoomId)
-        .update({"users": usersList}).then((value) => print("user added by addUserToGroup value is jsjkksdjss"));
+        .update({"users": usersList}).then((value) =>
+            print("user added by addUserToGroup value is jsjkksdjss"));
   }
 
   Future<Timestamp> getLastMessageTS(
@@ -175,7 +210,7 @@ class DatabaseMethods {
         .get();
   }
 
-Future<QuerySnapshot> getGroupInfo(String username) async {
+  Future<QuerySnapshot> getGroupInfo(String username) async {
     return await FirebaseFirestore.instance
         .collection("users")
         .where("username", isEqualTo: username)

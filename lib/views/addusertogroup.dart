@@ -38,28 +38,48 @@ class _AddUserToGroupState extends State<AddUserToGroup> {
     setState(() {});
   }
 
-  addUserToGroup(chatRoomId,username) async {
+  Future<bool> addUserToGroup(chatRoomId, username) async {
     List usersList = await DatabaseMethods().getChatRoomUsers(chatRoomId);
     if (usersList.contains(username)) {
+      return false;
     } else {
       usersList.add(username);
       DatabaseMethods().addUserToGroup(chatRoomId, usersList);
+      return true;
     }
-    
   }
 
   Widget searchListUserTile({String profileUrl, name, username, email}) {
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
         print("chatRoomId inside addusertogroup is ${widget.chatRoomId}");
-        addUserToGroup(widget.chatRoomId, username);
+        bool added = await addUserToGroup(widget.chatRoomId, username);
         String groupName =
             widget.chatRoomId.replaceFirst("Group", "").split("_")[0];
-        Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (context) => ChatScreen(
-                    widget.chatRoomId, groupName, widget.profileUrl)));
+        if (added) {
+          Navigator.popUntil(context, (route) => route.isFirst);
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => ChatScreen(
+                      widget.chatRoomId, groupName, widget.profileUrl)));
+        } else {
+          await showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text('Alert'),
+              content: Text('$name is already in this group.'),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
       },
       child: Card(
         child: Container(

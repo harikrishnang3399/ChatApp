@@ -221,11 +221,12 @@ class _ForwardedChatRoomListTileState extends State<ForwardedChatRoomListTile> {
                     children: [
                       Text(
                         name,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontSize: 16),
                       ),
                       SizedBox(height: 3),
                       Container(
-                        constraints: BoxConstraints(maxWidth: 270),
+                        constraints: BoxConstraints(maxWidth: 200),
                         child: Text(
                           widget.lastMessage.trim(),
                           maxLines: 1,

@@ -169,7 +169,7 @@ class ChatRoomListTile extends StatefulWidget {
 }
 
 class _ChatRoomListTileState extends State<ChatRoomListTile> {
-  String profilePicUrl = "", name = "", username = "";
+  String name = "", username = "", profilePicUrl = "";
   getThisUserInfo() async {
     print("I am being called on ${widget.lastMessage}");
     if (widget.chatRoomId.contains("Group", 0)) {
@@ -186,15 +186,14 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
       name = "${querySnapshot.docs[0]["name"]}";
       profilePicUrl = "${querySnapshot.docs[0]["imgUrl"]}";
       print("Group name $name profilepic $profilePicUrl");
-      setState(() {});
     } else {
       QuerySnapshot querySnapshot =
           await DatabaseMethods().getUserInfo(username);
       name = "${querySnapshot.docs[0]["name"]}";
       profilePicUrl = "${querySnapshot.docs[0]["imgUrl"]}";
       print("User name $name profilepic $profilePicUrl");
-      setState(() {});
     }
+    setState(() {});
   }
 
   @override
@@ -205,9 +204,7 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
 
   @override
   void didUpdateWidget(covariant ChatRoomListTile oldWidget) {
-    if (oldWidget.lastMessage != widget.lastMessage) {
-      getThisUserInfo();
-    }
+    getThisUserInfo();
     super.didUpdateWidget(oldWidget);
   }
 
@@ -246,6 +243,19 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
                             profilePicUrl,
                             height: 50,
                             width: 50,
+                            errorBuilder: (BuildContext context,
+                                Object exception, StackTrace stackTrace) {
+                              return CircleAvatar(
+                                child: Icon(
+                                  widget.chatRoomId.contains("Group", 0)
+                                      ? Icons.people_alt_sharp
+                                      : Icons.person,
+                                  color: Colors.black87,
+                                ),
+                                backgroundColor: Colors.grey,
+                                radius: 20,
+                              );
+                            },
                           )
                         : CircleAvatar(
                             child: Icon(
@@ -269,7 +279,7 @@ class _ChatRoomListTileState extends State<ChatRoomListTile> {
                       ),
                       SizedBox(height: 3),
                       Container(
-                        constraints: BoxConstraints(maxWidth: 255),
+                        constraints: BoxConstraints(maxWidth: 200),
                         child: Text(
                           widget.lastMessage.trim(),
                           maxLines: 1,
