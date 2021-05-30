@@ -48,8 +48,10 @@ class _ChatScreenState extends State<ChatScreen> {
       } else {
         throw 'Could not launch $url';
       }
-    } else if (url.startsWith("http") || url.startsWith("www")) {
+    } else {
       if (url.startsWith("www")) {
+        url = "https://$url";
+      } else if (!url.startsWith("http")) {
         url = "https://$url";
       }
       if (await canLaunch(url)) {
@@ -78,11 +80,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
   List<InlineSpan> linkify(String text, bool sendByMe) {
     const String urlPattern =
-        r"(((https?)://)|www.)([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\?[A-Z0-9+&@#/%=~_|!:‌​,.;]*)?";
+        r'(?:(?:https?|ftp):\/\/)?[\w/\-?=%.]+\.[\w/\-?=%.]+';
     const String emailPattern = r'\S+@\S+';
     const String phonePattern = r'[\d-]{9,}';
     final RegExp linkRegExp = RegExp(
-        '($urlPattern)|($phonePattern)|($emailPattern)',
+        '($emailPattern)|($phonePattern)|($urlPattern)',
         caseSensitive: false);
     final List<InlineSpan> list = <InlineSpan>[];
     final RegExpMatch match = linkRegExp.firstMatch(text);
@@ -97,17 +99,17 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     final String linkText = match.group(0);
-    if (linkText.contains(RegExp(urlPattern, caseSensitive: false))) {
+    if (linkText.contains(RegExp(emailPattern, caseSensitive: false))) {
+      // print("email");
+
+      list.add(buildLinkComponent(linkText, 'mailto:$linkText', sendByMe));
+    } else if (linkText.contains(RegExp(urlPattern, caseSensitive: false))) {
       // print(linkText);
       list.add(buildLinkComponent(linkText, linkText, sendByMe));
     } else if (linkText.contains(RegExp(phonePattern, caseSensitive: false))) {
       // print("num");
       // print(linkText);
       list.add(buildLinkComponent(linkText, 'tel:$linkText', sendByMe));
-    } else if (linkText.contains(RegExp(emailPattern, caseSensitive: false))) {
-      // print("email");
-
-      list.add(buildLinkComponent(linkText, 'mailto:$linkText', sendByMe));
     } else {
       throw 'Unexpected match: $linkText';
     }
@@ -718,8 +720,7 @@ class _PopUpEntryState extends State<PopUpEntry> {
 
   @override
   Widget build(BuildContext context) {
-    String urlPattern =
-        r"(((https?)://)|www.)([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\?[A-Z0-9+&@#/%=~_|!:‌​,.;]*)?";
+    String urlPattern = r'(?:(?:https?|ftp):\/\/)?[\w/\-?=%.]+\.[\w/\-?=%.]+';
     RegExp linkRegExp = RegExp('($urlPattern)', caseSensitive: false);
     RegExpMatch match = linkRegExp.firstMatch(widget.message);
 
