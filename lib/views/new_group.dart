@@ -61,7 +61,7 @@ class _NewGroupState extends State<NewGroup> {
     };
 
     var bytes = utf8.encode(chatRoomId);
-    String groupId = sha1.convert(bytes).toString();
+    String groupId = sha256.convert(bytes).toString();
 
     DocumentReference documentReference =
         FirebaseFirestore.instance.collection("images").doc();
@@ -100,7 +100,6 @@ class _NewGroupState extends State<NewGroup> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        centerTitle: true,
         title: Text("New Group"),
       ),
       body: Column(

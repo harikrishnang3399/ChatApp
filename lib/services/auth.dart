@@ -90,4 +90,6 @@ class AuthMethods {
     prefs.clear();
     await auth.signOut();
   }
+
+  
 }

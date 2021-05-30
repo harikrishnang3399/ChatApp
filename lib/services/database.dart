@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:chat_app/helperfunctions/sharedpref_helper.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crypto/crypto.dart';
 
 class DatabaseMethods {
   Future addUserInfoToDB(
@@ -25,6 +28,16 @@ class DatabaseMethods {
         .snapshots();
   }
 
+  Future<List> getAuthorities() async {
+    QuerySnapshot querySnapshot =
+        await FirebaseFirestore.instance.collection("authorities").get();
+    List authorities = [];
+    querySnapshot.docs.forEach((element) {
+      authorities.add(element);
+    });
+    return authorities;
+  }
+
   Future addMessage(
       String chatRoomId, String messageId, Map messageInfoMap) async {
     print("I am printing $messageId inside addMessage");
@@ -35,26 +48,6 @@ class DatabaseMethods {
         .doc(messageId)
         .set(messageInfoMap);
   }
-
-  // Future<List> getForwardedList(String chatRoomId, String messageId) async {
-  //   print("inside getForwarded $messageId");
-  //   print("inside getForwarded $chatRoomId");
-  //   List forwardedList = [];
-  //   await FirebaseFirestore.instance
-  //       .collection("chatrooms")
-  //       .doc(chatRoomId)
-  //       .collection("chats")
-  //       .doc(messageId)
-  //       .get()
-  //       .then((DocumentSnapshot ds) {
-  //     if (ds.data() != null) {
-  //       forwardedList = ds["forwardedTo"];
-  //       print("forwardedList inside getForwarded is $forwardedList");
-  //     }
-  //   });
-  //   print(forwardedList);
-  //   return forwardedList;
-  // }
 
   Future<DocumentSnapshot<Map<String, dynamic>>> getForwarded(
       String chatRoomId, String messageId) async {
@@ -84,6 +77,29 @@ class DatabaseMethods {
     return userList;
   }
 
+  Future<List> getMessageCollection(String message) async {
+    List messageIn;
+    var bytes = utf8.encode(message);
+    String messageId = sha256.convert(bytes).toString();
+    await FirebaseFirestore.instance
+        .collection("messageIn")
+        .doc(messageId)
+        .get()
+        .then((DocumentSnapshot ds) {
+      messageIn = ds["messageIn"];
+    });
+    return messageIn;
+  }
+
+  updateMessageCollection(String message, List messageIn) {
+    var bytes = utf8.encode(message);
+    String messageId = sha256.convert(bytes).toString();
+    FirebaseFirestore.instance
+        .collection("messageIn")
+        .doc(messageId)
+        .update({"messageIn": messageIn});
+  }
+
   updateForwardedList(Map forwardedlist, List forwardedList) {
     String chatRoomId = forwardedlist["chatRoomId"];
     String messageId = forwardedlist["messageId"];
@@ -93,6 +109,17 @@ class DatabaseMethods {
         .collection("chats")
         .doc(messageId)
         .update({"forwardedTo": forwardedList});
+  }
+
+  updateConfidenceFake(Map forwardedlist, int confidenceFake) {
+    String chatRoomId = forwardedlist["chatRoomId"];
+    String messageId = forwardedlist["messageId"];
+    return FirebaseFirestore.instance
+        .collection("chatrooms")
+        .doc(chatRoomId)
+        .collection("chats")
+        .doc(messageId)
+        .update({"confidenceFake": confidenceFake});
   }
 
   updateReported(Map forwardedlist, List upVoters) {
@@ -106,17 +133,6 @@ class DatabaseMethods {
         .update({"reported": true, "upVoters": upVoters});
   }
 
-  // updateYouReported(Map forwardedlist) {
-  //   String chatRoomId = forwardedlist["chatRoomId"];
-  //   String messageId = forwardedlist["messageId"];
-  //   return FirebaseFirestore.instance
-  //       .collection("chatrooms")
-  //       .doc(chatRoomId)
-  //       .collection("chats")
-  //       .doc(messageId)
-  //       .update({"youReported": true});
-  // }
-
   addUserToGroup(String chatRoomId, List usersList) {
     print("user added by addUserToGroup");
     return FirebaseFirestore.instance
@@ -124,6 +140,26 @@ class DatabaseMethods {
         .doc(chatRoomId)
         .update({"users": usersList}).then((value) =>
             print("user added by addUserToGroup value is jsjkksdjss"));
+  }
+
+  Future<List> checkMessageCollection(String message) async {
+    var bytes = utf8.encode(message);
+    String messageId = sha256.convert(bytes).toString();
+    int confidence;
+    String classOfMessage;
+    await FirebaseFirestore.instance
+        .collection("messages")
+        .doc(messageId)
+        .get()
+        .then((DocumentSnapshot ds) {
+      if (ds.data() != null) {
+        confidence = ds["confidence"];
+        classOfMessage = ds["class"];
+        print("all good");
+      }
+    });
+
+    return [confidence, classOfMessage];
   }
 
   Future<Timestamp> getLastMessageTS(

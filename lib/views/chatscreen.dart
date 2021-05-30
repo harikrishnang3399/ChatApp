@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
 
 // ignore: must_be_immutable
 class ChatScreen extends StatefulWidget {
@@ -146,24 +147,83 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  Future<List> postRequest(String message, int forwarded) async {
+    var url = 'https://us-central1-chatapp-89c43.cloudfunctions.net/isFake';
+    var body = json.encode({
+      "msg": message,
+      "forwarded": forwarded,
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json-patch+json',
+        },
+        body: body,
+      );
+
+      var output = json.decode(response.body);
+      String message = output["msg"];
+      String classOfMessage = output["class"];
+      int confidence = output["confidence"];
+
+      print("Hello, $message, $classOfMessage, $confidence");
+      return [confidence, classOfMessage];
+    } catch (e) {
+      return [null, null];
+    }
+  }
+
   addMessage(bool sendClicked) async {
     if (widget.forwardedMessage != null && sendClicked) {
       String message = widget.forwardedMessage;
       var lastMessageTS = DateTime.now();
 
-      var bytes = utf8.encode("$message$lastMessageTS"); // data being hashed
+      var bytes = utf8.encode("$message$lastMessageTS");
 
-      messageId = sha1.convert(bytes).toString();
+      messageId = sha256.convert(bytes).toString();
       print(messageId);
       print("forwardedMessageid is ${widget.forwardedMessageId}");
 
       DocumentSnapshot<Map<String, dynamic>> forwarded;
       forwarded = await DatabaseMethods()
           .getForwarded(widget.forwardedChatRoomId, widget.forwardedMessageId);
+
       List forwardedList, upVoters;
+      int confidenceFake, confidenceReal;
+      bool authorityReported;
 
       forwardedList = forwarded["forwardedTo"];
       upVoters = forwarded["upVoters"];
+      confidenceFake = forwarded["confidenceFake"];
+      confidenceReal = forwarded["confidenceReal"];
+      authorityReported = forwarded["authorityReported"];
+
+      if (authorityReported == false) {
+        print("Hello is working");
+        int confidence;
+        String classOfMessage;
+        List check;
+
+        check = await DatabaseMethods().checkMessageCollection(message);
+        confidence = check[0];
+        classOfMessage = check[1];
+
+        if (confidence == null && classOfMessage == null) {
+          print("Hello Part 2 is working");
+          check = await postRequest(message, 1);
+          confidence = check[0];
+          classOfMessage = check[1];
+        }
+
+        if (classOfMessage == "Fake") {
+          print("Hello Part 3 is working");
+          confidenceFake = confidence;
+        }
+      }
+
       Map<String, String> forwardedListInfoMap = {
         "chatRoomId": chatRoomId,
         "messageId": messageId
@@ -180,18 +240,15 @@ class _ChatScreenState extends State<ChatScreen> {
         "forwarded": true,
         "reported": forwarded["reported"],
         "upVoters": upVoters,
+        "confidenceFake": confidenceFake,
+        "confidenceReal": confidenceReal,
+        "authorityReported": authorityReported
       };
 
       DatabaseMethods()
           .addMessage(chatRoomId, messageId, messageInfoMap)
           .then((value) {
         print(messageId);
-
-        for (var forwardedlistmap in forwardedList) {
-          print("forwardedlistmap $forwardedlistmap");
-          DatabaseMethods()
-              .updateForwardedList(forwardedlistmap, forwardedList);
-        }
 
         Map<String, dynamic> lastMessageInfoMap = {
           "lastMessage": message,
@@ -201,6 +258,18 @@ class _ChatScreenState extends State<ChatScreen> {
         };
 
         DatabaseMethods().updateLastMessageSend(chatRoomId, lastMessageInfoMap);
+
+        for (var forwardedlistmap in forwardedList) {
+          print("forwardedlistmap $forwardedlistmap");
+          DatabaseMethods()
+              .updateForwardedList(forwardedlistmap, forwardedList);
+        }
+
+        for (var forwardedlistmap in forwardedList) {
+          print("forwardedlistmap $forwardedlistmap");
+          DatabaseMethods()
+              .updateConfidenceFake(forwardedlistmap, confidenceFake);
+        }
       });
 
       setState(() {
@@ -212,14 +281,32 @@ class _ChatScreenState extends State<ChatScreen> {
         messageTextEditingController.text != "" &&
         sendClicked) {
       print("chat room id inside addMessage is $chatRoomId");
-      // messageId = null;
       String message = messageTextEditingController.text;
       messageTextEditingController.text = "";
+
+      int confidence = 0;
+      String classOfMessage;
+      List check;
+
+      check = await DatabaseMethods().checkMessageCollection(message);
+      if (check[0] != null && check[1] != null) {
+        confidence = check[0];
+        classOfMessage = check[1];
+      }
+
+      if (confidence == null && classOfMessage == null) {
+        check = await postRequest(message, 0);
+        if (check[0] != null && check[1] != null) {
+          confidence = check[0];
+          classOfMessage = check[1];
+        }
+      }
+
       var lastMessageTS = DateTime.now();
 
-      var bytes = utf8.encode("$message$lastMessageTS"); // data being hashed
+      var bytes = utf8.encode("$message$lastMessageTS");
 
-      messageId = sha1.convert(bytes).toString();
+      messageId = sha256.convert(bytes).toString();
       print(messageId);
       print("forwardedMessageid is ${widget.forwardedMessageId}");
 
@@ -240,6 +327,9 @@ class _ChatScreenState extends State<ChatScreen> {
         "forwardedTo": forwardedList,
         "reported": false,
         "upVoters": [],
+        "confidenceFake": confidence,
+        "confidenceReal": 0,
+        "authorityReported": false,
       };
 
       DatabaseMethods()
@@ -259,8 +349,16 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  Widget chatMessageTile(String messageId, String message, String sendBy,
-      Timestamp ts, bool forwarded, String sendByName, List upVoters) {
+  Widget chatMessageTile(
+      String messageId,
+      String message,
+      String sendBy,
+      Timestamp ts,
+      bool forwarded,
+      String sendByName,
+      List upVoters,
+      int confidenceFake,
+      int confidenceReal) {
     bool sendByMe = sendBy == myUserName;
     final DateTime date =
         DateTime.fromMillisecondsSinceEpoch(ts.millisecondsSinceEpoch);
@@ -272,19 +370,20 @@ class _ChatScreenState extends State<ChatScreen> {
       showMenu(
           context: context,
           items: <PopupMenuEntry<Icon>>[
-            PopUpEntry(
-                message, messageId, chatRoomId, forwarded, myUserName, upVoters)
+            PopUpEntry(message, messageId, chatRoomId, forwarded, myUserName,
+                upVoters, confidenceFake, confidenceReal)
           ],
           position: RelativeRect.fromRect(
-              details.globalPosition &
-                  const Size(40, 40), // smaller rect, the touch area
-              Offset.fromDirection(pi / 2, 120) &
-                  overlay.semanticBounds.size // Bigger rect, the entire screen
-              ));
+              details.globalPosition & const Size(40, 40),
+              Offset.fromDirection(pi / 2, 120) & overlay.semanticBounds.size));
     }
 
     return GestureDetector(
       onTapDown: (TapDownDetails details) {
+        FocusScopeNode currentFocus = FocusScope.of(context);
+        if (!currentFocus.hasPrimaryFocus) {
+          currentFocus.unfocus();
+        }
         showCustomPopupMenu(details, message, messageId, chatRoomId);
       },
       child: Card(
@@ -293,8 +392,8 @@ class _ChatScreenState extends State<ChatScreen> {
         child: Row(
           mainAxisAlignment:
               sendByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-
           //this will determine if the message should be displayed left or right
+
           children: [
             Flexible(
               child: IntrinsicWidth(
@@ -314,6 +413,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                   ? Container()
                                   : Text(sendByName)
                               : Container(),
+                          confidenceFake > 50
+                              ? Text("This is $confidenceFake% fake")
+                              : Container(),
                           forwarded
                               ? Row(
                                   children: [
@@ -321,9 +423,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                     Text("Forwarded")
                                   ],
                                 )
-                              : SizedBox(
-                                  height: 0.0,
-                                ),
+                              : Container(),
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -382,7 +482,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       ds["ts"],
                       ds["forwarded"],
                       ds["sendByName"],
-                      ds["upVoters"]);
+                      ds["upVoters"],
+                      ds["confidenceFake"],
+                      ds["confidenceReal"]);
                 },
               )
             : Center(child: CircularProgressIndicator());
@@ -422,7 +524,6 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        centerTitle: true,
         title: Row(
           children: [
             ClipRRect(
@@ -453,7 +554,6 @@ class _ChatScreenState extends State<ChatScreen> {
               constraints: BoxConstraints(maxWidth: 235),
               child: Text(
                 widget.name,
-                // maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
             )
@@ -473,7 +573,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   },
                   child: Padding(
                     padding: EdgeInsets.only(right: 16.0),
-                    child: Icon(Icons.person_add_alt_sharp),
+                    child: Icon(Icons.person_add_alt_1_sharp),
                   ),
                 )
               : Container()
@@ -527,9 +627,17 @@ class PopUpEntry extends PopupMenuEntry<Icon> {
   final height = 100;
   final String message, messageId, chatRoomId, upvoterName;
   final List upVoters;
+  final int confidenceFake, confidenceReal;
   final bool forwarded;
-  PopUpEntry(this.message, this.messageId, this.chatRoomId, this.forwarded,
-      this.upvoterName, this.upVoters);
+  PopUpEntry(
+      this.message,
+      this.messageId,
+      this.chatRoomId,
+      this.forwarded,
+      this.upvoterName,
+      this.upVoters,
+      this.confidenceFake,
+      this.confidenceReal);
 
   @override
   _PopUpEntryState createState() => _PopUpEntryState();
@@ -565,9 +673,46 @@ class _PopUpEntryState extends State<PopUpEntry> {
     List upVoters = forwarded["upVoters"];
     upVoters.add(widget.upvoterName);
 
+    if (upVoters.length > 0) {
+      List authorities = await DatabaseMethods().getAuthorities();
+      DocumentSnapshot authority = (authorities..shuffle()).first;
+      String username = authority["username"];
+      String chatRoomId = "$username\_$username";
+      DateTime lastMessageTS = DateTime.now();
+
+      Map<String, dynamic> messageInfoMap = {
+        "message": widget.message,
+        "sendBy": username,
+        "sendByName": "Authority",
+        "ts": lastMessageTS,
+        "imgUrl": "",
+        "forwardedTo": forwardedList,
+        "forwarded": true,
+        "reported": true,
+        "upVoters": upVoters,
+        "confidenceFake": forwarded["confidenceFake"],
+        "confidenceReal": forwarded["confidenceReal"],
+        "authorityReported": false
+      };
+      DatabaseMethods()
+          .addMessage(chatRoomId, widget.messageId, messageInfoMap)
+          .then((value) {
+        print(widget.messageId);
+        Map<String, dynamic> lastMessageInfoMap = {
+          "lastMessage": widget.message,
+          "lastMessageSendTS": lastMessageTS,
+          "lastMessageSendBy": username,
+          "lastMessageId": widget.messageId,
+        };
+        print("add message inside chat screen is working");
+
+        DatabaseMethods().updateLastMessageSend(chatRoomId, lastMessageInfoMap);
+      });
+    }
+
     for (var forwardedlistmap in forwardedList) {
       print("forwardedlistmap $forwardedlistmap");
-      DatabaseMethods().updateReported(forwardedlistmap, upVoters);
+      await DatabaseMethods().updateReported(forwardedlistmap, upVoters);
     }
   }
 
@@ -613,25 +758,27 @@ class _PopUpEntryState extends State<PopUpEntry> {
             ),
           ),
         ),
-        widget.forwarded &&
-                (widget.message.split(" ").length > 10 || match != null)
-            ? widget.upVoters.contains(widget.upvoterName)
-                ? Container()
-                : Expanded(
-                    child: TextButton(
-                      onPressed: onReport,
-                      child: Column(
-                        children: [
-                          Icon(Icons.report),
-                          SizedBox(
-                            height: 4,
+        (widget.confidenceFake == 100 || widget.confidenceReal == 100)
+            ? Container()
+            : widget.forwarded &&
+                    (widget.message.split(" ").length > 10 || match != null)
+                ? widget.upVoters.contains(widget.upvoterName)
+                    ? Container()
+                    : Expanded(
+                        child: TextButton(
+                          onPressed: onReport,
+                          child: Column(
+                            children: [
+                              Icon(Icons.report),
+                              SizedBox(
+                                height: 4,
+                              ),
+                              Text("Report"),
+                            ],
                           ),
-                          Text("Report"),
-                        ],
-                      ),
-                    ),
-                  )
-            : Container(),
+                        ),
+                      )
+                : Container(),
         SizedBox(
           width: 8,
         ),

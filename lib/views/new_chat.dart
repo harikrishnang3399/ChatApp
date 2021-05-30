@@ -27,7 +27,7 @@ class _NewChatState extends State<NewChat> {
     }
   }
 
-  onSearchButtonClick() async {
+  onTypingTextOnSearchField() async {
     print("onsearchbutton click is working");
     isSearching = true;
     setState(() {});
@@ -37,15 +37,20 @@ class _NewChatState extends State<NewChat> {
     setState(() {});
   }
 
-  Widget searchListUserTile({String profileUrl, name, username, email}) {
+  Widget searchListUserTile(
+      {String profileUrl, String name, String username, String email}) {
     return GestureDetector(
       onTap: () {
         var chatRoomId = getChatRoomIdByUsername(widget.myUserName, username);
+        print("chatRoomId from searchListUserTile is $chatRoomId");
+        print("username is $username");
 
         Map<String, dynamic> chatRoomInfoMap = {
           "users": [widget.myUserName, username]
         };
-        Map<String, dynamic> lastMessageInfoMap = {
+        Map<String, dynamic> lastMessageInfoMap;
+
+        lastMessageInfoMap = {
           "lastMessage": " ",
           "lastMessageSendTS": DateTime.now(),
           "lastMessageSendBy": " ",
@@ -55,13 +60,11 @@ class _NewChatState extends State<NewChat> {
         DatabaseMethods()
             .createChatRoom(chatRoomId, chatRoomInfoMap, lastMessageInfoMap);
 
-        // DatabaseMethods().updateLastMessageSend(chatRoomId, lastMessageInfoMap);
         Navigator.popUntil(context, (route) => route.isFirst);
         Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (context) =>
-                    ChatScreen(username, name, profileUrl)));
+                builder: (context) => ChatScreen(username, name, profileUrl)));
       },
       child: Card(
         child: Container(
@@ -74,6 +77,19 @@ class _NewChatState extends State<NewChat> {
                   profileUrl,
                   height: 50,
                   width: 50,
+                  errorBuilder: (BuildContext context, Object exception,
+                      StackTrace stackTrace) {
+                    return CircleAvatar(
+                      child: Icon(
+                        name.contains("Group", 0)
+                            ? Icons.people_alt_sharp
+                            : Icons.person,
+                        color: Colors.black87,
+                      ),
+                      backgroundColor: Colors.grey,
+                      radius: 20,
+                    );
+                  },
                 ),
               ),
               SizedBox(width: 16),
@@ -82,10 +98,6 @@ class _NewChatState extends State<NewChat> {
                 children: [
                   Text(
                     name,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    username,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
@@ -125,6 +137,7 @@ class _NewChatState extends State<NewChat> {
             shrinkWrap: true,
             itemBuilder: (context, index) {
               DocumentSnapshot ds = snapshot.data.docs[index];
+
               return searchListUserTile(
                   profileUrl: ds["imgUrl"],
                   name: ds["name"],
@@ -152,7 +165,7 @@ class _NewChatState extends State<NewChat> {
                     setState(() {});
                   },
                   child: Padding(
-                    padding: EdgeInsets.only(right: 16.0),
+                    padding: EdgeInsets.only(right: 20.0),
                     child: Icon(Icons.search),
                   ),
                 )
@@ -160,9 +173,10 @@ class _NewChatState extends State<NewChat> {
             )
           : AppBar(
               title: TextField(
+                autofocus: true,
                 onChanged: (text) {
                   if (text != "") {
-                    onSearchButtonClick();
+                    onTypingTextOnSearchField();
                     setState(() {});
                   } else if (text == "") {
                     isSearching = false;
@@ -189,6 +203,7 @@ class _NewChatState extends State<NewChat> {
               ),
             ),
       body: Container(
+          padding: EdgeInsets.only(top: 8),
           child: isSearching && selected ? searchUsersList() : Container()),
     );
   }

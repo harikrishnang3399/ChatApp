@@ -59,6 +59,7 @@ class _HomeState extends State<Home> {
               itemBuilder: (context, index) {
                 DocumentSnapshot ds = snapshot.data.docs[index];
                 print("hey list builder inside home is working");
+
                 return ChatRoomListTile(ds["lastMessage"], ds.id, myUserName,
                     ds["lastMessageSendTS"]);
               },
@@ -126,7 +127,7 @@ class _HomeState extends State<Home> {
       appBar: AppBar(
         centerTitle: true,
         title: Text("ChatApp"),
-        actions: <Widget>[
+        actions: [
           PopupMenuButton<String>(
             onSelected: (choice) {
               handlePopupMenuClick(choice);

@@ -161,7 +161,7 @@ class _AddUserToGroupState extends State<AddUserToGroup> {
                     setState(() {});
                   },
                   child: Padding(
-                    padding: EdgeInsets.only(right: 16.0),
+                    padding: EdgeInsets.only(right: 20.0),
                     child: Icon(Icons.search),
                   ),
                 )
