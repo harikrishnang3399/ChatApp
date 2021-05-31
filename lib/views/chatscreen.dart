@@ -286,7 +286,7 @@ class _ChatScreenState extends State<ChatScreen> {
       String message = messageTextEditingController.text;
       messageTextEditingController.text = "";
 
-      int confidence = 0;
+      int confidence;
       String classOfMessage;
       List check;
 
@@ -294,6 +294,8 @@ class _ChatScreenState extends State<ChatScreen> {
       if (check[0] != null && check[1] != null) {
         confidence = check[0];
         classOfMessage = check[1];
+
+        print("hello $confidence");
       }
 
       if (confidence == null && classOfMessage == null) {
@@ -301,7 +303,12 @@ class _ChatScreenState extends State<ChatScreen> {
         if (check[0] != null && check[1] != null) {
           confidence = check[0];
           classOfMessage = check[1];
+
+          print("hello part 2 $confidence");
         }
+      }
+      if (confidence == null) {
+        confidence = 0;
       }
 
       var lastMessageTS = DateTime.now();
