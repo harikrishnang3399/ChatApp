@@ -80,7 +80,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   List<InlineSpan> linkify(String text, bool sendByMe) {
     const String urlPattern =
-        r'(?:(?:https?|ftp):\/\/)?[\w/\-?=%.]+\.[\w/\-?=%.]+';
+        r'(?:(?:https?|ftp):\/\/)?[\w/\-?=%.]+\.[\w/\-?=%&.]+';
     const String emailPattern = r'\S+@\S+';
     const String phonePattern = r'[\d-]{9,}';
     final RegExp linkRegExp = RegExp(
