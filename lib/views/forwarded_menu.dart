@@ -233,7 +233,7 @@ class _ForwardMenuState extends State<ForwardMenu> {
     return Scaffold(
       appBar: selected == false
           ? AppBar(
-              title: Text("New Chat"),
+              title: Text("Forward To"),
               actions: [
                 GestureDetector(
                   onTap: () {
