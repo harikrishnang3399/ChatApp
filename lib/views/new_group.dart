@@ -17,7 +17,7 @@ class NewGroup extends StatefulWidget {
 }
 
 class _NewGroupState extends State<NewGroup> {
-  bool selected = false, enableButton = false;
+  bool selected = false, enableButton = false, gettingImage = false;
   TextEditingController groupNameContoller = TextEditingController();
   String groupName;
   String chatRoomId;
@@ -28,8 +28,9 @@ class _NewGroupState extends State<NewGroup> {
 
   Future<String> uploadFile(image) async {
     String url;
-    Reference ref =
-        FirebaseStorage.instance.ref().child("AppGroupImages/Image${DateTime.now()}");
+    Reference ref = FirebaseStorage.instance
+        .ref()
+        .child("AppGroupImages/Image${DateTime.now()}");
     UploadTask uploadTask = ref.putFile(image);
     url = await uploadTask.then((res) => res.ref.getDownloadURL());
     return url;
@@ -48,11 +49,7 @@ class _NewGroupState extends State<NewGroup> {
     print("image is $_image");
   }
 
-  returnImageUrl() async {
-    return imageUrl;
-  }
-
-  createGroup(_image) async {
+  createGroup() async {
     groupName = groupNameContoller.text;
     var date = DateTime.now();
     chatRoomId = "Group$groupName\_$date";
@@ -65,11 +62,13 @@ class _NewGroupState extends State<NewGroup> {
 
     DocumentReference documentReference =
         FirebaseFirestore.instance.collection("images").doc();
-    await saveImage(_image, documentReference);
-
-    String imgURL = imageUrl != null ? imageUrl : "";
-    print("inside createGroup imageUrl is $imageUrl");
-    print("inside createGroup imgURL is $imgURL");
+    String imgURL = "";
+    if (gettingImage) {
+      await saveImage(_image, documentReference);
+      String imgURL = imageUrl;
+      print("inside createGroup imageUrl is $imageUrl");
+      print("inside createGroup imgURL is $imgURL");
+    }
 
     Map<String, dynamic> groupInfoMap = {
       "name": groupName,
@@ -110,6 +109,7 @@ class _NewGroupState extends State<NewGroup> {
                   child: Container(
                     child: IconButton(
                       onPressed: () {
+                        gettingImage = true;
                         getImage();
                       },
                       icon: Icon(Icons.camera_alt),
@@ -175,11 +175,7 @@ class _NewGroupState extends State<NewGroup> {
             height: 10,
           ),
           ElevatedButton(
-            onPressed: enableButton
-                ? () {
-                    createGroup(_image);
-                  }
-                : null,
+            onPressed: enableButton ? createGroup : null,
             child: Text("Create Group"),
           )
         ],
