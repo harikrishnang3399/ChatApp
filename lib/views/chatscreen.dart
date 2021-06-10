@@ -149,11 +149,13 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  Future<List> postRequest(String message, int forwarded) async {
-    var url = 'https://us-central1-chatapp-89c43.cloudfunctions.net/isFake';
+  Future<List> postRequest(
+      String message, int forwarded, int numOfUpVoters) async {
+    var url = 'https://us-central1-chatapp-89c43.cloudfunctions.net/FakeOrNot';
     var body = json.encode({
       "msg": message,
       "forwarded": forwarded,
+      "upvotes": numOfUpVoters,
     });
 
     try {
@@ -171,9 +173,10 @@ class _ChatScreenState extends State<ChatScreen> {
       String classOfMessage = output["class"];
       int confidence = output["confidence"];
 
-      print("Hello, $message, $classOfMessage, $confidence");
+      print("Hello try is working, $message, $classOfMessage, $confidence");
       return [confidence, classOfMessage];
     } catch (e) {
+      print("catch is working");
       return [null, null];
     }
   }
@@ -209,16 +212,16 @@ class _ChatScreenState extends State<ChatScreen> {
         String classOfMessage;
         List check;
 
-        check = await DatabaseMethods().checkMessageCollection(message);
+        // check = await DatabaseMethods().checkMessageCollection(message);
+        // confidence = check[0];
+        // classOfMessage = check[1];
+
+        // if (confidence == null && classOfMessage == null) {
+        print("Hello Part 2 is working");
+        check = await postRequest(message, 1, upVoters.length);
         confidence = check[0];
         classOfMessage = check[1];
-
-        if (confidence == null && classOfMessage == null) {
-          print("Hello Part 2 is working");
-          check = await postRequest(message, 1);
-          confidence = check[0];
-          classOfMessage = check[1];
-        }
+        // }
 
         if (classOfMessage == "Fake") {
           print("Hello Part 3 is working");
@@ -287,26 +290,23 @@ class _ChatScreenState extends State<ChatScreen> {
       messageTextEditingController.text = "";
 
       int confidence;
-      String classOfMessage;
       List check;
 
-      check = await DatabaseMethods().checkMessageCollection(message);
+      // check = await DatabaseMethods().checkMessageCollection(message);
+      // if (check[0] != null && check[1] != null) {
+      //   confidence = check[0];
+      //   classOfMessage = check[1];
+
+      //   print("hello $confidence");
+      // }
+
+      // if (confidence == null && classOfMessage == null) {
+      check = await postRequest(message, 0, 0);
       if (check[0] != null && check[1] != null) {
         confidence = check[0];
-        classOfMessage = check[1];
-
-        print("hello $confidence");
+        print("hello part 2 $confidence");
       }
-
-      if (confidence == null && classOfMessage == null) {
-        check = await postRequest(message, 0);
-        if (check[0] != null && check[1] != null) {
-          confidence = check[0];
-          classOfMessage = check[1];
-
-          print("hello part 2 $confidence");
-        }
-      }
+      // }
       if (confidence == null) {
         confidence = 0;
       }
