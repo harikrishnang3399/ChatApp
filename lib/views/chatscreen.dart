@@ -276,6 +276,43 @@ class _ChatScreenState extends State<ChatScreen> {
               .updateConfidenceFake(forwardedlistmap, confidenceFake);
         }
       });
+      if (confidenceFake > 90) {
+        List authorities = await DatabaseMethods().getAuthorities();
+        DocumentSnapshot authority = (authorities..shuffle()).first;
+        String username = authority["username"];
+        String chatRoomId = "$username\_$username";
+        DateTime lastMessageTS = DateTime.now();
+
+        Map<String, dynamic> messageInfoMap = {
+          "message": message,
+          "sendBy": username,
+          "sendByName": "Authority",
+          "ts": lastMessageTS,
+          "imgUrl": "",
+          "forwardedTo": forwardedList,
+          "forwarded": true,
+          "reported": false,
+          "upVoters": upVoters,
+          "confidenceFake": forwarded["confidenceFake"],
+          "confidenceReal": forwarded["confidenceReal"],
+          "authorityReported": false
+        };
+        DatabaseMethods()
+            .addMessage(chatRoomId, messageId, messageInfoMap)
+            .then((value) {
+          print(messageId);
+          Map<String, dynamic> lastMessageInfoMap = {
+            "lastMessage": message,
+            "lastMessageSendTS": lastMessageTS,
+            "lastMessageSendBy": username,
+            "lastMessageId": messageId,
+          };
+          print("add message inside chat screen is working");
+
+          DatabaseMethods()
+              .updateLastMessageSend(chatRoomId, lastMessageInfoMap);
+        });
+      }
 
       setState(() {
         widget.forwardedMessage = null;
