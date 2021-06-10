@@ -206,29 +206,6 @@ class _ChatScreenState extends State<ChatScreen> {
       confidenceReal = forwarded["confidenceReal"];
       authorityReported = forwarded["authorityReported"];
 
-      if (authorityReported == false) {
-        print("Hello is working");
-        int confidence;
-        String classOfMessage;
-        List check;
-
-        // check = await DatabaseMethods().checkMessageCollection(message);
-        // confidence = check[0];
-        // classOfMessage = check[1];
-
-        // if (confidence == null && classOfMessage == null) {
-        print("Hello Part 2 is working");
-        check = await postRequest(message, 1, upVoters.length);
-        confidence = check[0];
-        classOfMessage = check[1];
-        // }
-
-        if (classOfMessage == "Fake") {
-          print("Hello Part 3 is working");
-          confidenceFake = confidence;
-        }
-      }
-
       Map<String, String> forwardedListInfoMap = {
         "chatRoomId": chatRoomId,
         "messageId": messageId
@@ -269,14 +246,25 @@ class _ChatScreenState extends State<ChatScreen> {
           DatabaseMethods()
               .updateForwardedList(forwardedlistmap, forwardedList);
         }
-
-        for (var forwardedlistmap in forwardedList) {
-          print("forwardedlistmap $forwardedlistmap");
-          DatabaseMethods()
-              .updateConfidenceFake(forwardedlistmap, confidenceFake);
-        }
       });
-      if (confidenceFake > 90) {
+
+      print("The change is working");
+      int confidence;
+      if (authorityReported == false) {
+        print("Hello is working");
+        List check;
+        print("Hello Part 2 is working");
+        check = await postRequest(message, 1, upVoters.length);
+        confidence = check[0];
+      }
+
+      for (var forwardedlistmap in forwardedList) {
+        print("forwardedlistmap $forwardedlistmap");
+        DatabaseMethods().updateConfidenceFake(forwardedlistmap, confidence);
+      }
+      print("The change is working");
+
+      if (confidence > 90) {
         List authorities = await DatabaseMethods().getAuthorities();
         DocumentSnapshot authority = (authorities..shuffle()).first;
         String username = authority["username"];
@@ -293,8 +281,8 @@ class _ChatScreenState extends State<ChatScreen> {
           "forwarded": true,
           "reported": false,
           "upVoters": upVoters,
-          "confidenceFake": forwarded["confidenceFake"],
-          "confidenceReal": forwarded["confidenceReal"],
+          "confidenceFake": confidence,
+          "confidenceReal": confidenceReal,
           "authorityReported": false
         };
         DatabaseMethods()
@@ -325,33 +313,9 @@ class _ChatScreenState extends State<ChatScreen> {
       print("chat room id inside addMessage is $chatRoomId");
       String message = messageTextEditingController.text;
       messageTextEditingController.text = "";
-
-      int confidence;
-      List check;
-
-      // check = await DatabaseMethods().checkMessageCollection(message);
-      // if (check[0] != null && check[1] != null) {
-      //   confidence = check[0];
-      //   classOfMessage = check[1];
-
-      //   print("hello $confidence");
-      // }
-
-      // if (confidence == null && classOfMessage == null) {
-      check = await postRequest(message, 0, 0);
-      if (check[0] != null && check[1] != null) {
-        confidence = check[0];
-        print("hello part 2 $confidence");
-      }
-      // }
-      if (confidence == null) {
-        confidence = 0;
-      }
-
       var lastMessageTS = DateTime.now();
 
       var bytes = utf8.encode("$message$lastMessageTS");
-
       messageId = sha256.convert(bytes).toString();
       print(messageId);
       print("forwardedMessageid is ${widget.forwardedMessageId}");
@@ -373,25 +337,44 @@ class _ChatScreenState extends State<ChatScreen> {
         "forwardedTo": forwardedList,
         "reported": false,
         "upVoters": [],
-        "confidenceFake": confidence,
+        "confidenceFake": 0,
         "confidenceReal": 0,
         "authorityReported": false,
       };
 
-      DatabaseMethods()
-          .addMessage(chatRoomId, messageId, messageInfoMap)
-          .then((value) {
-        print(messageId);
-        Map<String, dynamic> lastMessageInfoMap = {
-          "lastMessage": message,
-          "lastMessageSendTS": lastMessageTS,
-          "lastMessageSendBy": myUserName,
-          "lastMessageId": messageId,
-        };
-        print("add message inside chat screen is working");
+      DatabaseMethods().addMessage(chatRoomId, messageId, messageInfoMap).then(
+        (value) {
+          print(messageId);
+          Map<String, dynamic> lastMessageInfoMap = {
+            "lastMessage": message,
+            "lastMessageSendTS": lastMessageTS,
+            "lastMessageSendBy": myUserName,
+            "lastMessageId": messageId,
+          };
+          print("add message inside chat screen is working");
 
-        DatabaseMethods().updateLastMessageSend(chatRoomId, lastMessageInfoMap);
-      });
+          DatabaseMethods()
+              .updateLastMessageSend(chatRoomId, lastMessageInfoMap);
+        },
+      );
+
+      print("The change is working");
+
+      int confidence;
+      List check;
+
+      check = await postRequest(message, 0, 0);
+      if (check[0] != null && check[1] != null) {
+        confidence = check[0];
+        print("hello part 2 $confidence");
+      }
+
+      if (confidence == null) {
+        confidence = 0;
+      }
+
+      DatabaseMethods().updateConfidenceFake(forwardedListInfoMap, confidence);
+      print("The change is working");
     }
   }
 
