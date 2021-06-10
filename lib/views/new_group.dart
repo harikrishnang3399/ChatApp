@@ -22,7 +22,7 @@ class _NewGroupState extends State<NewGroup> {
   String groupName;
   String chatRoomId;
   File _image;
-  String imageUrl;
+  String imageUrl = "";
 
   ImagePicker imagePicker = ImagePicker();
 
@@ -62,18 +62,17 @@ class _NewGroupState extends State<NewGroup> {
 
     DocumentReference documentReference =
         FirebaseFirestore.instance.collection("images").doc();
-    String imgURL = "";
+    // String imgURL = "";
     if (gettingImage) {
       await saveImage(_image, documentReference);
-      String imgURL = imageUrl;
       print("inside createGroup imageUrl is $imageUrl");
-      print("inside createGroup imgURL is $imgURL");
+      // print("inside createGroup imgURL is $imgURL");
     }
 
     Map<String, dynamic> groupInfoMap = {
       "name": groupName,
       "username": chatRoomId,
-      "imgUrl": imgURL
+      "imgUrl": imageUrl
     };
 
     DatabaseMethods().addUserInfoToDB(groupId, groupInfoMap);
@@ -92,7 +91,7 @@ class _NewGroupState extends State<NewGroup> {
     Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (context) => ChatScreen(chatRoomId, groupName, imgURL)));
+            builder: (context) => ChatScreen(chatRoomId, groupName, imageUrl)));
   }
 
   @override
