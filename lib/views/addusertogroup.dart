@@ -169,6 +169,7 @@ class _AddUserToGroupState extends State<AddUserToGroup> {
             )
           : AppBar(
               title: TextField(
+                autofocus: true,
                 onChanged: (text) {
                   if (text != "") {
                     onSearchButtonClick();
