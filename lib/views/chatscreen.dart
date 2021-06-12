@@ -150,12 +150,14 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<List> postRequest(
-      String message, int forwarded, int numOfUpVoters) async {
+      String message, int forwarded, List upVoters, List forwardedList) async {
+    print("forwardedList in postRequest $forwardedList");
     var url = 'https://us-central1-chatapp-89c43.cloudfunctions.net/FakeOrNot';
     var body = json.encode({
       "msg": message,
       "forwarded": forwarded,
-      "upvotes": numOfUpVoters,
+      "upvoters": upVoters,
+      "forwardedTo": forwardedList,
     });
 
     try {
@@ -196,12 +198,21 @@ class _ChatScreenState extends State<ChatScreen> {
       forwarded = await DatabaseMethods()
           .getForwarded(widget.forwardedChatRoomId, widget.forwardedMessageId);
 
-      List forwardedList, upVoters;
-      int confidenceFake, confidenceReal;
+      List messageInCollection;
+      List forwardedList = [];
+      List upVoters = [];
+      messageInCollection =
+          await DatabaseMethods().checkMessageCollection(message);
+      if (messageInCollection[2] != null) {
+        forwardedList = messageInCollection[2];
+        upVoters = messageInCollection[3];
+      }
+
+      int confidenceFake = 0, confidenceReal;
       bool authorityReported;
 
-      forwardedList = forwarded["forwardedTo"];
-      upVoters = forwarded["upVoters"];
+      forwardedList.addAll(forwarded["forwardedTo"]);
+      upVoters.addAll(forwarded["upVoters"]);
       confidenceFake = forwarded["confidenceFake"];
       confidenceReal = forwarded["confidenceReal"];
       authorityReported = forwarded["authorityReported"];
@@ -211,6 +222,10 @@ class _ChatScreenState extends State<ChatScreen> {
         "messageId": messageId
       };
       forwardedList.add(forwardedListInfoMap);
+      forwardedList = forwardedList.map((item) => jsonEncode(item)).toList();
+      forwardedList = forwardedList.toSet().toList();
+      forwardedList = forwardedList.map((item) => jsonDecode(item)).toList();
+      upVoters = upVoters.toSet().toList();
 
       Map<String, dynamic> messageInfoMap = {
         "message": message,
@@ -249,13 +264,16 @@ class _ChatScreenState extends State<ChatScreen> {
       });
 
       print("The change is working");
-      int confidence;
+      int confidence = confidenceFake;
       if (authorityReported == false) {
         print("Hello is working");
         List check;
         print("Hello Part 2 is working");
-        check = await postRequest(message, 1, upVoters.length);
-        confidence = check[0];
+        print("forwardedList before postRequest $forwardedList");
+        check = await postRequest(message, 1, upVoters, forwardedList);
+        if (check[0] != null) {
+          confidence = check[0];
+        }
       }
 
       for (var forwardedlistmap in forwardedList) {
@@ -320,12 +338,26 @@ class _ChatScreenState extends State<ChatScreen> {
       print(messageId);
       print("forwardedMessageid is ${widget.forwardedMessageId}");
 
+      List messageInCollection;
       List forwardedList = [];
+      List upVoters = [];
+      messageInCollection =
+          await DatabaseMethods().checkMessageCollection(message);
+      if (messageInCollection[2] != null) {
+        forwardedList = messageInCollection[2];
+        upVoters = messageInCollection[3];
+        print("forwardedList inside first send $forwardedList");
+      }
+
       Map<String, String> forwardedListInfoMap = {
         "chatRoomId": chatRoomId,
         "messageId": messageId
       };
       forwardedList.add(forwardedListInfoMap);
+      forwardedList = forwardedList.map((item) => jsonEncode(item)).toList();
+      forwardedList = forwardedList.toSet().toList();
+      forwardedList = forwardedList.map((item) => jsonDecode(item)).toList();
+      upVoters = upVoters.toSet().toList();
 
       Map<String, dynamic> messageInfoMap = {
         "message": message,
@@ -336,7 +368,7 @@ class _ChatScreenState extends State<ChatScreen> {
         "forwarded": false,
         "forwardedTo": forwardedList,
         "reported": false,
-        "upVoters": [],
+        "upVoters": upVoters,
         "confidenceFake": 0,
         "confidenceReal": 0,
         "authorityReported": false,
@@ -363,7 +395,7 @@ class _ChatScreenState extends State<ChatScreen> {
       int confidence;
       List check;
 
-      check = await postRequest(message, 0, 0);
+      check = await postRequest(message, 0, upVoters, forwardedList);
       if (check[0] != null && check[1] != null) {
         confidence = check[0];
         print("hello part 2 $confidence");
@@ -373,7 +405,10 @@ class _ChatScreenState extends State<ChatScreen> {
         confidence = 0;
       }
 
-      DatabaseMethods().updateConfidenceFake(forwardedListInfoMap, confidence);
+      for (var forwardedlistmap in forwardedList) {
+        print("forwardedlistmap $forwardedlistmap");
+        DatabaseMethods().updateConfidenceFake(forwardedlistmap, confidence);
+      }
       print("The change is working");
     }
   }

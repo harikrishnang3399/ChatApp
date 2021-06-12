@@ -77,29 +77,6 @@ class DatabaseMethods {
     return userList;
   }
 
-  Future<List> getMessageCollection(String message) async {
-    List messageIn;
-    var bytes = utf8.encode(message);
-    String messageId = sha256.convert(bytes).toString();
-    await FirebaseFirestore.instance
-        .collection("messageIn")
-        .doc(messageId)
-        .get()
-        .then((DocumentSnapshot ds) {
-      messageIn = ds["messageIn"];
-    });
-    return messageIn;
-  }
-
-  updateMessageCollection(String message, List messageIn) {
-    var bytes = utf8.encode(message);
-    String messageId = sha256.convert(bytes).toString();
-    FirebaseFirestore.instance
-        .collection("messageIn")
-        .doc(messageId)
-        .update({"messageIn": messageIn});
-  }
-
   updateForwardedList(Map forwardedlist, List forwardedList) {
     String chatRoomId = forwardedlist["chatRoomId"];
     String messageId = forwardedlist["messageId"];
@@ -147,6 +124,7 @@ class DatabaseMethods {
     String messageId = sha256.convert(bytes).toString();
     int confidence;
     String classOfMessage;
+    List forwardedList, upVoters;
     await FirebaseFirestore.instance
         .collection("messages")
         .doc(messageId)
@@ -155,11 +133,13 @@ class DatabaseMethods {
       if (ds.data() != null) {
         confidence = ds["confidence"];
         classOfMessage = ds["class"];
-        print("all good");
+        forwardedList = ds["forwardedTo"];
+        upVoters = ds["upvoters"];
+        print("all good $forwardedList");
       }
     });
 
-    return [confidence, classOfMessage];
+    return [confidence, classOfMessage, forwardedList, upVoters];
   }
 
   Future<Timestamp> getLastMessageTS(
