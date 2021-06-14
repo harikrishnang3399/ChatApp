@@ -152,7 +152,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<List> postRequest(
       String message, int forwarded, List upVoters, List forwardedList) async {
     print("forwardedList in postRequest $forwardedList");
-    var url = 'https://us-central1-chatapp-89c43.cloudfunctions.net/FakeOrNot';
+    var url = 'https://us-central1-chatapp-89c43.cloudfunctions.net/isFake';
     var body = json.encode({
       "msg": message,
       "forwarded": forwarded,
