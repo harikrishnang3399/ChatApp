@@ -31,9 +31,13 @@ class _NewGroupState extends State<NewGroup> {
     Reference ref = FirebaseStorage.instance
         .ref()
         .child("AppGroupImages/Image${DateTime.now()}");
-    UploadTask uploadTask = ref.putFile(image);
-    url = await uploadTask.then((res) => res.ref.getDownloadURL());
-    return url;
+    if (image != null) {
+      UploadTask uploadTask = ref.putFile(image);
+      url = await uploadTask.then((res) => res.ref.getDownloadURL());
+      return url;
+    } else {
+      return null;
+    }
   }
 
   Future saveImage(image, DocumentReference documentReference) async {
@@ -44,7 +48,9 @@ class _NewGroupState extends State<NewGroup> {
   Future getImage() async {
     final image = await imagePicker.getImage(source: ImageSource.gallery);
     setState(() {
-      _image = File(image.path);
+      if (image != null) {
+        _image = File(image.path);
+      }
     });
     print("image is $_image");
   }
@@ -68,7 +74,9 @@ class _NewGroupState extends State<NewGroup> {
       print("inside createGroup imageUrl is $imageUrl");
       // print("inside createGroup imgURL is $imgURL");
     }
-
+    if (imageUrl == null) {
+      imageUrl = "";
+    }
     Map<String, dynamic> groupInfoMap = {
       "name": groupName,
       "username": chatRoomId,
