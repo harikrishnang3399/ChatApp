@@ -142,30 +142,6 @@ class DatabaseMethods {
     return [confidence, classOfMessage, forwardedList, upVoters];
   }
 
-  Future<Timestamp> getLastMessageTS(
-      String chatRoomId, String messageId) async {
-    print("Hello, getLastMessageTS is working");
-    Timestamp lastMessageTS;
-    await FirebaseFirestore.instance
-        .collection("chatrooms")
-        .doc(chatRoomId)
-        .collection("chats")
-        .doc(messageId)
-        .get()
-        .then((DocumentSnapshot ds) {
-      print("Hello, getLastMessageTS then is working");
-      if (ds.data() != null) {
-        print("Hello, getLastMessageTS then if is working");
-        lastMessageTS = ds["ts"];
-        print("Hello, getLastMessageTS the if 2 is working $lastMessageTS");
-      } else {
-        lastMessageTS = null;
-      }
-    });
-    print("One to 3 $lastMessageTS");
-    return lastMessageTS;
-  }
-
   updateLastMessageSend(String chatRoomId, Map lastMessageInfoMap) {
     print("Hello, updateLastmessageSend is working");
     print(lastMessageInfoMap["lastMessageId"]);
