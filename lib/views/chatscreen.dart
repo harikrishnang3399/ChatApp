@@ -406,7 +406,7 @@ class _ChatScreenState extends State<ChatScreen> {
       if (confidence == null) {
         if (messageInCollection[0] == null) {
           confidence = 0;
-        } else if (messageInCollection[0] != null) {
+        } else {
           confidence = messageInCollection[0];
         }
       }
