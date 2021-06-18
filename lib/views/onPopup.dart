@@ -141,8 +141,8 @@ class _PopUpEntryState extends State<PopUpEntry> {
         ),
         (widget.confidenceFake == 100 || widget.confidenceReal == 100)
             ? Container()
-            : widget.forwarded &&
-                    (widget.message.split(" ").length >= 10 || match != null)
+            : (widget.forwarded && widget.message.split(" ").length >= 10) ||
+                    match != null
                 ? widget.upVoters.contains(widget.upvoterName)
                     ? Container()
                     : Expanded(
