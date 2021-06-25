@@ -283,12 +283,15 @@ class _ChatScreenState extends State<ChatScreen> {
       }
       print("The change is working");
 
-      if (confidence > 90) {
+      if (confidence > 90 && authorityReported == false) {
+        // Message to be sent to authority
         List authorities = await DatabaseMethods().getAuthorities();
         DocumentSnapshot authority = (authorities..shuffle()).first;
         String username = authority["username"];
         String chatRoomId = "$username\_$username";
         DateTime lastMessageTS = DateTime.now();
+        var bytes = utf8.encode(message);
+        String messageIdAuthority = sha256.convert(bytes).toString();
 
         Map<String, dynamic> messageInfoMap = {
           "message": message,
@@ -305,14 +308,14 @@ class _ChatScreenState extends State<ChatScreen> {
           "authorityReported": false
         };
         DatabaseMethods()
-            .addMessage(chatRoomId, messageId, messageInfoMap)
+            .addMessage(chatRoomId, messageIdAuthority, messageInfoMap)
             .then((value) {
           print(messageId);
           Map<String, dynamic> lastMessageInfoMap = {
             "lastMessage": message,
             "lastMessageSendTS": lastMessageTS,
             "lastMessageSendBy": username,
-            "lastMessageId": messageId,
+            "lastMessageId": messageIdAuthority,
           };
           print("add message inside chat screen is working");
 
@@ -361,6 +364,22 @@ class _ChatScreenState extends State<ChatScreen> {
       forwardedList = forwardedList.map((item) => jsonDecode(item)).toList();
       upVoters = upVoters.toSet().toList();
 
+      List authorities = await DatabaseMethods().getAuthorities();
+      DocumentSnapshot authority = (authorities..shuffle()).first;
+      String username = authority["username"];
+      String chatRoomIdAuthority = "$username\_$username";
+      bytes = utf8.encode(message);
+      String messageIdAuthority = sha256.convert(bytes).toString();
+      bool authorityReported = false;
+      DocumentSnapshot<Map<String, dynamic>> forwarded;
+      forwarded =
+          await DatabaseMethods().getForwarded(chatRoomIdAuthority, messageIdAuthority);
+      print("forwraded $forwarded");
+      if (forwarded.exists) {
+        authorityReported = forwarded["authorityReported"];
+        print("authorityReported $authorityReported");
+      }
+
       Map<String, dynamic> messageInfoMap = {
         "message": message,
         "sendBy": myUserName,
@@ -373,7 +392,7 @@ class _ChatScreenState extends State<ChatScreen> {
         "upVoters": upVoters,
         "confidenceFake": 0,
         "confidenceReal": 0,
-        "authorityReported": false,
+        "authorityReported": authorityReported,
       };
 
       DatabaseMethods().addMessage(chatRoomId, messageId, messageInfoMap).then(
@@ -416,6 +435,41 @@ class _ChatScreenState extends State<ChatScreen> {
         DatabaseMethods().updateConfidenceFake(forwardedlistmap, confidence);
       }
       print("The change is working");
+      if (confidence > 90 && authorityReported == false) {
+        // Message to be sent to authority on first arrival of message
+        DateTime lastMessageTS = DateTime.now();
+
+        print("It is dark over here");
+        Map<String, dynamic> messageInfoMap = {
+          "message": message,
+          "sendBy": username,
+          "sendByName": "Authority",
+          "ts": lastMessageTS,
+          "imgUrl": "",
+          "forwardedTo": forwardedList,
+          "forwarded": true,
+          "reported": false,
+          "upVoters": upVoters,
+          "confidenceFake": confidence,
+          "confidenceReal": 0,
+          "authorityReported": authorityReported
+        };
+        DatabaseMethods()
+            .addMessage(chatRoomIdAuthority, messageIdAuthority, messageInfoMap)
+            .then((value) {
+          print(messageId);
+          Map<String, dynamic> lastMessageInfoMap = {
+            "lastMessage": message,
+            "lastMessageSendTS": lastMessageTS,
+            "lastMessageSendBy": username,
+            "lastMessageId": messageIdAuthority,
+          };
+          print("add message inside chat screen is working");
+
+          DatabaseMethods()
+              .updateLastMessageSend(chatRoomIdAuthority, lastMessageInfoMap);
+        });
+      }
     }
   }
 

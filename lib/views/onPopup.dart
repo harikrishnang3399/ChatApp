@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:chat_app/services/database.dart';
 import 'package:chat_app/views/forwarded_menu.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -61,6 +64,8 @@ class _PopUpEntryState extends State<PopUpEntry> {
       String username = authority["username"];
       String chatRoomId = "$username\_$username";
       DateTime lastMessageTS = DateTime.now();
+      var bytes = utf8.encode(widget.message);
+      String messageId = sha256.convert(bytes).toString();
 
       Map<String, dynamic> messageInfoMap = {
         "message": widget.message,
@@ -77,14 +82,14 @@ class _PopUpEntryState extends State<PopUpEntry> {
         "authorityReported": false
       };
       DatabaseMethods()
-          .addMessage(chatRoomId, widget.messageId, messageInfoMap)
+          .addMessage(chatRoomId, messageId, messageInfoMap)
           .then((value) {
         print(widget.messageId);
         Map<String, dynamic> lastMessageInfoMap = {
           "lastMessage": widget.message,
           "lastMessageSendTS": lastMessageTS,
           "lastMessageSendBy": username,
-          "lastMessageId": widget.messageId,
+          "lastMessageId": messageId,
         };
         print("add message inside chat screen is working");
 
